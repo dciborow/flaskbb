@@ -245,13 +245,10 @@ def upgrade(all_latest, fixture, force):
 
     if fixture or all_latest:
         try:
-            settings = import_string(
-                "flaskbb.fixtures.{}".format(fixture)
-            )
+            settings = import_string(f"flaskbb.fixtures.{fixture}")
             settings = settings.fixture
         except ImportError:
-            raise FlaskBBCLIError("{} fixture is not available"
-                                  .format(fixture), fg="red")
+            raise FlaskBBCLIError(f"{fixture} fixture is not available", fg="red")
 
         click.secho("[+] Updating fixtures...", fg="cyan")
         count = update_settings_from_fixture(
@@ -408,8 +405,7 @@ def generate_config(development, output, force):
         config_path = prompt_config_path(config_path)
 
     if force and os.path.exists(config_path):
-        click.secho("Overwriting existing config file: {}".format(config_path),
-                    fg="yellow")
+        click.secho(f"Overwriting existing config file: {config_path}", fg="yellow")
 
     if development:
         default_conf["is_debug"] = True

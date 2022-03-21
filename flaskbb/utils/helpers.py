@@ -61,10 +61,7 @@ def slugify(text, delim=u"-"):
    :param delim: Default "-". The delimeter for whitespace
     """
     text = unidecode.unidecode(text)
-    result = []
-    for word in _punct_re.split(text.lower()):
-        if word:
-            result.append(word)
+    result = [word for word in _punct_re.split(text.lower()) if word]
     return text_type(delim.join(result))
 
 
@@ -204,11 +201,10 @@ def get_categories_and_forums(query_result, user):
 
     forums = []
 
-    if user.is_authenticated:
-        for key, value in it:
+    for key, value in it:
+        if user.is_authenticated:
             forums.append((key, [(item[1], item[2]) for item in value]))
-    else:
-        for key, value in it:
+        else:
             forums.append((key, [(item[1], None) for item in value]))
 
     return forums
@@ -231,11 +227,10 @@ def get_forums(query_result, user):
     """
     it = itertools.groupby(query_result, operator.itemgetter(0))
 
-    if user.is_authenticated:
-        for key, value in it:
+    for key, value in it:
+        if user.is_authenticated:
             forums = key, [(item[1], item[2]) for item in value]
-    else:
-        for key, value in it:
+        else:
             forums = key, [(item[1], None) for item in value]
 
     return forums
@@ -278,9 +273,11 @@ def forum_is_unread(forum, forumsread, user):
     try:
         # check if the forum has been cleared and if there is a new post
         # since it have been cleared
-        if forum.last_post_created > forumsread.cleared:
-            if forum.last_post_created < forumsread.last_read:
-                return False
+        if (
+            forum.last_post_created > forumsread.cleared
+            and forum.last_post_created < forumsread.last_read
+        ):
+            return False
     except TypeError:
         pass
 
@@ -333,7 +330,7 @@ def topic_is_unread(topic, topicsread, user, forumsread=None):
     return topicsread.last_read < topic.last_updated
 
 
-def mark_online(user_id, guest=False):  # pragma: no cover
+def mark_online(user_id, guest=False):    # pragma: no cover
     """Marks a user as online
 
     :param user_id: The id from the user who should be marked as online
@@ -348,10 +345,10 @@ def mark_online(user_id, guest=False):  # pragma: no cover
     expires = now + (flaskbb_config["ONLINE_LAST_MINUTES"] * 60) + 10
     if guest:
         all_users_key = "online-guests/%d" % (now // 60)
-        user_key = "guest-activity/%s" % user_id
+        user_key = f"guest-activity/{user_id}"
     else:
         all_users_key = "online-users/%d" % (now // 60)
-        user_key = "user-activity/%s" % user_id
+        user_key = f"user-activity/{user_id}"
     p = redis_store.pipeline()
     p.sadd(all_users_key, user_id)
     p.set(user_key, now)
@@ -414,8 +411,7 @@ def time_diff():
     variable from the configuration.
     """
     now = time_utcnow()
-    diff = now - timedelta(minutes=flaskbb_config["ONLINE_LAST_MINUTES"])
-    return diff
+    return now - timedelta(minutes=flaskbb_config["ONLINE_LAST_MINUTES"])
 
 
 def _get_user_locale():
@@ -441,9 +437,7 @@ def _format_html_time_tag(datetime, what_to_display):
     isoformat = datetime.isoformat()
 
     return Markup(
-        '<time datetime="{}" data-what_to_display="{}">{}</time>'.format(
-            isoformat, what_to_display, content
-        )
+        f'<time datetime="{isoformat}" data-what_to_display="{what_to_display}">{content}</time>'
     )
 
 
@@ -499,11 +493,9 @@ def format_quote(username, content):
     """
     profile_url = url_for("user.profile", username=username)
     content = "\n> ".join(content.strip().split("\n"))
-    quote = u"**[{username}]({profile_url}) wrote:**\n> {content}\n".format(
+    return u"**[{username}]({profile_url}) wrote:**\n> {content}\n".format(
         username=username, profile_url=profile_url, content=content
     )
-
-    return quote
 
 
 def get_image_info(url):
@@ -559,27 +551,22 @@ def check_image(url):
     error = None
 
     if img_info["size"] > flaskbb_config["AVATAR_SIZE"]:
-        error = "Image is too big! {}kb are allowed.".format(
-            flaskbb_config["AVATAR_SIZE"]
-        )
+        error = f'Image is too big! {flaskbb_config["AVATAR_SIZE"]}kb are allowed.'
         return error, False
 
-    if not img_info["content_type"] in flaskbb_config["AVATAR_TYPES"]:
-        error = "Image type {} is not allowed. Allowed types are: {}".format(
-            img_info["content_type"], ", ".join(flaskbb_config["AVATAR_TYPES"])
-        )
+    if img_info["content_type"] not in flaskbb_config["AVATAR_TYPES"]:
+        error = f'Image type {img_info["content_type"]} is not allowed. Allowed types are: {", ".join(flaskbb_config["AVATAR_TYPES"])}'
+
         return error, False
 
     if img_info["width"] > flaskbb_config["AVATAR_WIDTH"]:
-        error = "Image is too wide! {}px width is allowed.".format(
-            flaskbb_config["AVATAR_WIDTH"]
-        )
+        error = f'Image is too wide! {flaskbb_config["AVATAR_WIDTH"]}px width is allowed.'
+
         return error, False
 
     if img_info["height"] > flaskbb_config["AVATAR_HEIGHT"]:
-        error = "Image is too high! {}px height is allowed.".format(
-            flaskbb_config["AVATAR_HEIGHT"]
-        )
+        error = f'Image is too high! {flaskbb_config["AVATAR_HEIGHT"]}px height is allowed.'
+
         return error, False
 
     return error, True
@@ -590,12 +577,7 @@ def get_alembic_locations(plugin_dirs):
     The branchname is the name of plugin directory which should also be
     the unique identifier of the plugin.
     """
-    branches_dirs = [
-        tuple([os.path.basename(os.path.dirname(p)), p])
-        for p in plugin_dirs
-    ]
-
-    return branches_dirs
+    return [(os.path.basename(os.path.dirname(p)), p) for p in plugin_dirs]
 
 
 def get_available_themes():
@@ -726,22 +708,18 @@ class ReverseProxyPathFix(object):
         self.force_https = force_https
 
     def __call__(self, environ, start_response):
-        script_name = environ.get("HTTP_X_SCRIPT_NAME", "")
-        if script_name:
+        if script_name := environ.get("HTTP_X_SCRIPT_NAME", ""):
             environ["SCRIPT_NAME"] = script_name
             path_info = environ.get("PATH_INFO", "")
             if path_info and path_info.startswith(script_name):
                 environ["PATH_INFO"] = path_info[len(script_name) :]
-        server = environ.get(
+        if server := environ.get(
             "HTTP_X_FORWARDED_SERVER_CUSTOM",
             environ.get("HTTP_X_FORWARDED_SERVER", ""),
-        )
-        if server:
+        ):
             environ["HTTP_HOST"] = server
 
-        scheme = environ.get("HTTP_X_SCHEME", "")
-
-        if scheme:
+        if scheme := environ.get("HTTP_X_SCHEME", ""):
             environ["wsgi.url_scheme"] = scheme
 
         if self.force_https:
@@ -754,9 +732,7 @@ def real(obj):
     """Unwraps a werkzeug.local.LocalProxy object if given one,
     else returns the object.
     """
-    if isinstance(obj, LocalProxy):
-        return obj._get_current_object()
-    return obj
+    return obj._get_current_object() if isinstance(obj, LocalProxy) else obj
 
 
 def parse_pkg_metadata(dist_name):
@@ -769,13 +745,10 @@ def parse_pkg_metadata(dist_name):
             "PKG-INFO"
         )
 
-    metadata = {}
-
-    # lets use the Parser from email to parse our metadata :)
-    for key, value in message_from_string(raw_metadata).items():
-        metadata[key.replace("-", "_").lower()] = value
-
-    return metadata
+    return {
+        key.replace("-", "_").lower(): value
+        for key, value in message_from_string(raw_metadata).items()
+    }
 
 
 def anonymous_required(f):
@@ -829,13 +802,9 @@ class FlashAndRedirect(object):
     def __init__(self, message, level, endpoint):
         # need to reassign to avoid capturing the reassigned endpoint
         # in the generated closure, otherwise bad things happen at resolution
-        if not callable(endpoint):
-            # discard args and kwargs and just go to the endpoint
-            # this probably isn't *100%* correct behavior in case we need
-            # to add query params on...
-            endpoint_ = lambda *a, **k: url_for(endpoint)  # noqa
-        else:
-            endpoint_ = endpoint
+        endpoint_ = (
+            endpoint if callable(endpoint) else (lambda *a, **k: url_for(endpoint))
+        )
 
         self._message = message
         self._level = level

@@ -106,13 +106,12 @@ class RecaptchaValidator(object):
 class RecaptchaWidget(object):
 
     def recaptcha_html(self, public_key):
-        html = current_app.config.get('RECAPTCHA_HTML')
-        if html:
+        if html := current_app.config.get('RECAPTCHA_HTML'):
             return Markup(html)
         params = current_app.config.get('RECAPTCHA_PARAMETERS')
         script = RECAPTCHA_SCRIPT
         if params:
-            script += u'?' + url_encode(params)
+            script += f'?{url_encode(params)}'
 
         attrs = current_app.config.get('RECAPTCHA_DATA_ATTRS', {})
         attrs['sitekey'] = public_key
@@ -186,9 +185,7 @@ class SelectBirthdayWidget(object):
                 id_current = field_id + id_suffix
 
                 if css_class is not None:  # pragma: no cover
-                    select_class = "{} {}".format(
-                        css_class, self.FORMAT_CLASSES[date_format]
-                    )
+                    select_class = f"{css_class} {self.FORMAT_CLASSES[date_format]}"
                 else:
                     select_class = self.FORMAT_CLASSES[date_format]
 
@@ -206,16 +203,12 @@ class SelectBirthdayWidget(object):
                                                         id=id_current,
                                                         **kwargs))
 
-                if field.data:
-                    current_value = int(field.data.strftime(date_format))
-                else:
-                    current_value = None
-
+                current_value = int(field.data.strftime(date_format)) if field.data else None
                 for value, label in choices:
                     selected = (value == current_value)
 
                     # Defaults to blank
-                    if value == 1 or value == 1930:
+                    if value in [1, 1930]:
                         html.append(
                             Select.render_option("None", " ", selected)
                         )

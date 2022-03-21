@@ -29,11 +29,10 @@ _re_user = re.compile(r'@(\w+)', re.I)
 
 def userify(match):
     value = match.group(1)
-    user = "<a href='{url}'>@{user}</a>".format(
+    return "<a href='{url}'>@{user}</a>".format(
         url=url_for("user.profile", username=value, _external=False),
         user=value
     )
-    return user
 
 
 class FlaskBBRenderer(mistune.Renderer):

@@ -4,7 +4,7 @@ import re
 import requests
 
 
-URL = 'https://unicode.org/Public/emoji/{}/emoji-test.txt'.format(sys.argv[1])
+URL = f'https://unicode.org/Public/emoji/{sys.argv[1]}/emoji-test.txt'
 
 
 def get_annotations():

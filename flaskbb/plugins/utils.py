@@ -66,12 +66,11 @@ def remove_zombie_plugins_from_db():
 
     plugin_names = [p.name for p in PluginRegistry.query.all()]
 
-    remove_me = []
-    for p in plugin_names:
-        if p in d_db_plugins and p not in d_fs_plugins:
-            remove_me.append(p)
+    remove_me = [
+        p for p in plugin_names if p in d_db_plugins and p not in d_fs_plugins
+    ]
 
-    if len(remove_me) > 0:
+    if remove_me:
         PluginRegistry.query.filter(PluginRegistry.name.in_(remove_me)).delete(
             synchronize_session="fetch"
         )

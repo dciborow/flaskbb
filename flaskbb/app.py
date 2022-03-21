@@ -132,11 +132,11 @@ def configure_app(app, config):
     configure_logging(app)
 
     if not isinstance(config, string_types) and config is not None:
-        config_name = "{}.{}".format(config.__module__, config.__name__)
+        config_name = f"{config.__module__}.{config.__name__}"
     else:
         config_name = config
 
-    logger.info("Using config from: {}".format(config_name))
+    logger.info(f"Using config from: {config_name}")
 
     deprecation_level = app.config.get("DEPRECATION_LEVEL", "default")
 
@@ -239,8 +239,7 @@ def configure_extensions(app):
     @login_manager.user_loader
     def load_user(user_id):
         """Loads the user. Required by the `login` extension."""
-        user_instance = User.query.filter_by(id=user_id).first()
-        if user_instance:
+        if user_instance := User.query.filter_by(id=user_id).first():
             return user_instance
         else:
             return None
@@ -250,15 +249,16 @@ def configure_extensions(app):
 
 def configure_template_filters(app):
     """Configures the template filters."""
-    filters = {}
+    filters = {
+        "crop_title": crop_title,
+        "format_date": format_date,
+        "format_datetime": format_datetime,
+        "forum_is_unread": forum_is_unread,
+        "is_online": is_online,
+        "time_since": time_since,
+        "topic_is_unread": topic_is_unread,
+    }
 
-    filters["crop_title"] = crop_title
-    filters["format_date"] = format_date
-    filters["format_datetime"] = format_datetime
-    filters["forum_is_unread"] = forum_is_unread
-    filters["is_online"] = is_online
-    filters["time_since"] = time_since
-    filters["topic_is_unread"] = topic_is_unread
 
     permissions = [
         ("is_admin", IsAdmin),
@@ -436,11 +436,8 @@ def load_plugins(app):
     # because of imports and that makes Python very unhappy
     # we are not interested in duplicated plugins or invalid ones
     # ('None' - appears on py2) and thus using a set
-    flaskbb_modules = set(
-        module
-        for name, module in iteritems(sys.modules)
-        if name.startswith("flaskbb")
-    )
+    flaskbb_modules = {module for name, module in iteritems(sys.modules)
+            if name.startswith("flaskbb")}
     for module in flaskbb_modules:
         app.pluggy.register(module, internal=True)
 
@@ -466,8 +463,8 @@ def load_plugins(app):
     app.pluggy.load_setuptools_entrypoints("flaskbb_plugins")
     app.pluggy.hook.flaskbb_extensions(app=app)
 
-    loaded_names = set([p[0] for p in app.pluggy.list_name_plugin()])
-    registered_names = set([p.name for p in plugins])
+    loaded_names = {p[0] for p in app.pluggy.list_name_plugin()}
+    registered_names = {p.name for p in plugins}
     unregistered = [
         PluginRegistry(name=name)
         for name in loaded_names - registered_names
@@ -481,7 +478,7 @@ def load_plugins(app):
         removed = 0
         if app.config["REMOVE_DEAD_PLUGINS"]:
             removed = remove_zombie_plugins_from_db()
-            logger.info("Removed Plugins: {}".format(removed))
+            logger.info(f"Removed Plugins: {removed}")
 
     # we need a copy of it because of
     # RuntimeError: dictionary changed size during iteration
@@ -491,5 +488,5 @@ def load_plugins(app):
     ]
     for task_name, task in iteritems(tasks):
         if task.__module__.split(".")[0] in disabled_plugins:
-            logger.debug("Unregistering task: '{}'".format(task))
+            logger.debug(f"Unregistering task: '{task}'")
             celery.tasks.unregister(task_name)

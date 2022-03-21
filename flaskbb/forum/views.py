@@ -155,7 +155,7 @@ class ViewPost(MethodView):
                 topic_id=post.topic.id,
                 slug=post.topic.slug,
                 page=page,
-                _anchor="pid{}".format(post.id)
+                _anchor=f"pid{post.id}",
             )
         )
 
@@ -243,9 +243,7 @@ class ViewTopic(MethodView):
             )
 
     def form(self):
-        if Permission(CanPostReply):
-            return QuickreplyForm()
-        return None
+        return QuickreplyForm() if Permission(CanPostReply) else None
 
 
 class NewTopic(MethodView):
@@ -390,7 +388,7 @@ class ManageForum(MethodView):
         ids = request.form.getlist("rowid")
         tmp_topics = Topic.query.filter(Topic.id.in_(ids)).all()
 
-        if not len(tmp_topics) > 0:
+        if len(tmp_topics) <= 0:
             flash(
                 _(
                     "In order to perform this action you have to select at "
@@ -409,8 +407,6 @@ class ManageForum(MethodView):
             )
 
             flash(_("%(count)s topics locked.", count=changed), "success")
-            return redirect(mod_forum_url)
-
         elif "unlock" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -419,9 +415,6 @@ class ManageForum(MethodView):
                 reverse=True
             )
             flash(_("%(count)s topics unlocked.", count=changed), "success")
-            return redirect(mod_forum_url)
-
-        # highlighting/trivializing
         elif "highlight" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -430,8 +423,6 @@ class ManageForum(MethodView):
                 reverse=False
             )
             flash(_("%(count)s topics highlighted.", count=changed), "success")
-            return redirect(mod_forum_url)
-
         elif "trivialize" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -440,9 +431,6 @@ class ManageForum(MethodView):
                 reverse=True
             )
             flash(_("%(count)s topics trivialized.", count=changed), "success")
-            return redirect(mod_forum_url)
-
-        # deleting
         elif "delete" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -451,9 +439,6 @@ class ManageForum(MethodView):
                 reverse=False
             )
             flash(_("%(count)s topics deleted.", count=changed), "success")
-            return redirect(mod_forum_url)
-
-        # moving
         elif "move" in request.form:
             new_forum_id = request.form.get("forum")
 
@@ -478,9 +463,6 @@ class ManageForum(MethodView):
             else:
                 flash(_("Failed to move topics."), "danger")
 
-            return redirect(mod_forum_url)
-
-        # hiding/unhiding
         elif "hide" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -489,8 +471,6 @@ class ManageForum(MethodView):
                 reverse=False
             )
             flash(_("%(count)s topics hidden.", count=changed), "success")
-            return redirect(mod_forum_url)
-
         elif "unhide" in request.form:
             changed = do_topic_action(
                 topics=tmp_topics,
@@ -499,11 +479,10 @@ class ManageForum(MethodView):
                 reverse=False
             )
             flash(_("%(count)s topics unhidden.", count=changed), "success")
-            return redirect(mod_forum_url)
-
         else:
             flash(_("Unknown action requested"), "danger")
-            return redirect(mod_forum_url)
+
+        return redirect(mod_forum_url)
 
 
 class NewPost(MethodView):
@@ -623,15 +602,11 @@ class MemberList(MethodView):
         sort_by = request.args.get("sort_by", "reg_date")
         order_by = request.args.get("order_by", "asc")
 
-        if order_by == "asc":
-            order_func = asc
-        else:
-            order_func = desc
-
-        if sort_by == "reg_date":
-            sort_obj = User.id
-        elif sort_by == "post_count":
+        order_func = asc if order_by == "asc" else desc
+        if sort_by == "post_count":
             sort_obj = User.post_count
+        elif sort_by == "reg_date":
+            sort_obj = User.id
         else:
             sort_obj = User.username
 
@@ -647,15 +622,11 @@ class MemberList(MethodView):
         sort_by = request.args.get("sort_by", "reg_date")
         order_by = request.args.get("order_by", "asc")
 
-        if order_by == "asc":
-            order_func = asc
-        else:
-            order_func = desc
-
-        if sort_by == "reg_date":
-            sort_obj = User.id
-        elif sort_by == "post_count":
+        order_func = asc if order_by == "asc" else desc
+        if sort_by == "post_count":
             sort_obj = User.post_count
+        elif sort_by == "reg_date":
+            sort_obj = User.id
         else:
             sort_obj = User.username
 
@@ -1108,8 +1079,7 @@ class MarkdownPreview(MethodView):
                 )
 
         renderer = make_renderer(render_classes)
-        preview = renderer(text)
-        return preview
+        return renderer(text)
 
 
 @impl(tryfirst=True)

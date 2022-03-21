@@ -28,7 +28,7 @@ class SettingsGroup(db.Model, CRUDMixin):
                                cascade="all, delete-orphan")
 
     def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__, self.key)
+        return f"<{self.__class__.__name__} {self.key}>"
 
 
 class Setting(db.Model, CRUDMixin):
@@ -94,16 +94,8 @@ class Setting(db.Model, CRUDMixin):
         :param from_group: Optionally - Returns only the settings from a group.
         """
         result = None
-        if from_group is not None:
-            result = from_group.settings
-        else:
-            result = cls.query.all()
-
-        settings = {}
-        for setting in result:
-            settings[setting.key] = setting.value
-
-        return settings
+        result = from_group.settings if from_group is not None else cls.query.all()
+        return {setting.key: setting.value for setting in result}
 
     @classmethod
     @cache.cached(key_prefix="settings")
@@ -126,11 +118,7 @@ class Setting(db.Model, CRUDMixin):
             result = cls.query.all()
 
         for setting in result:
-            if upper:
-                setting_key = setting.key.upper()
-            else:
-                setting_key = setting.key
-
+            setting_key = setting.key.upper() if upper else setting.key
             settings[setting_key] = setting.value
 
         return settings
